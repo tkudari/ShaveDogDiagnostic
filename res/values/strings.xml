@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ShaveDog</string>
+    <string name="get_list">Show Peers</string>
+    <string name="dump_img_data">Dump video data</string>
+    <string name="welcome">Choose an option with the Menu key</string>
+    <string name="about">About..</string>
+    <string name="aboutContent">This is currently a diagnostic tool under development. More features will be added.\n\n 
+    		\'Dump image data\' dumps details about the images currently on the device. These are taken from the MediaProvider. However, the \'Actual file size\' and \
+    		the \'Actual mTime\' are read from the image file itself. \(These details are also being logged\) \n\n \
+    		\'Hash my Images\' and \'Hash my videos\' produce SHA1 or MD5 hashes of your files and dump info about time taken\
+    		, file names, sizes, etc. to the screen and logs \n\n \
+    		\'Flip Hash algorithm\' toggles between SHA1 and MD5 \n\n \
+    		It also does what the title says; \
+    	hold your phone with the app running, close to a dog. </string>
+   	<string name="main_activity">Go Back</string>
+   	<string name="quit">Quit</string>
+   	<string name="not_loaded">No images found, or MediaProvider not populated yet. \n Give it some time or take some pictures.</string>
+   	<string name="populate_list">Populate List</string>
+   	<string name="set_creds">Set Credentials</string>   	
+   	<string name="username">User name</string>
+   	<string name="set">Set!</string>
+   	<string name="default_username_used">Username not set, using default user name:</string>
+   	<string name="username_too_small">Minimum username length should be = </string>
+   	<string name="back">Back</string>
+   	<string name="dump_img_file">Dump first img</string>
+	<string name="test_api">test whatever</string>
+	<string name="hash_video_file">Hash my videos</string>
+	<string name="no_images_found">No images found/ mediascanner still running/ SD card mounted elsewhere</string>
+	<string name="no_videos_found">No videos found/ mediascanner still running/ SD card mounted elsewhere</string>
+	<string name="flip_algo">Flip Hash algorithm</string>
+	<string name="shave_service_started">ShaveService\'s up \&amp; running</string>
+	<string name="shave_service_stopped">ShaveService\'s stopped, boo!</string>
+	<string name="this_the_string">awesomeness to arrive</string>
+	<string name="shave_service_connected">ShaveService\'s connected</string>
+	<string name="shave_service_disconnected">ShaveService\'s disconnected</string>
+	<string name="wants">wants to be friends with you</string>
+	<string name="no_wifi">No Wi-fi!! Get your shit together!!</string>
+	<string name="friends_list">Friends List</string>
+	<string name="test_api2">test API 2</string>
+	
+	<string name="downloading">Downloading file:</string>
+	<string name="done_downloading">Successfully Downloaded file:</string>
+	<string name="download_interrupted">Check your devices. Download interrupted for file:</string>
+	<string name="refresh_file_list">Refresh list</string>
+	
+	
+
+	<string name="md5_img_file">MD5 of first img</string>   	
+	<string name="new_request">You have a new Request!</string>   	
+
+   	
+   	
+   	
+</resources>
