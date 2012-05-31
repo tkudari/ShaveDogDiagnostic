@@ -4,10 +4,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.lang.reflect.Method;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.Socket;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -15,9 +20,33 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Enumeration;
+import java.util.List;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.teleal.cling.UpnpService;
+import org.teleal.cling.UpnpServiceImpl;
+import org.teleal.cling.android.AndroidUpnpServiceConfiguration;
+import org.teleal.cling.controlpoint.ControlPoint;
+import org.teleal.cling.support.contentdirectory.AbstractContentDirectoryService;
+import org.teleal.cling.support.contentdirectory.ContentDirectoryErrorCode;
+import org.teleal.cling.support.contentdirectory.ContentDirectoryException;
+import org.teleal.cling.support.contentdirectory.DIDLParser;
+import org.teleal.cling.support.igd.PortMappingListener;
+import org.teleal.cling.support.model.BrowseFlag;
+import org.teleal.cling.support.model.BrowseResult;
+import org.teleal.cling.support.model.DIDLContent;
+import org.teleal.cling.support.model.PersonWithRole;
+import org.teleal.cling.support.model.PortMapping;
+import org.teleal.cling.support.model.Res;
+import org.teleal.cling.support.model.SortCriterion;
+import org.teleal.cling.support.model.item.MusicTrack;
+import org.teleal.common.util.MimeType;
 
 import com.tejus.shavedog.Definitions;
 import com.tejus.shavedog.R;
+import com.tejus.shavedog.TestMediaServerService;
 
 import com.tejus.shavedog.ShaveService;
 
@@ -28,6 +57,7 @@ import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -35,6 +65,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.media.ExifInterface;
@@ -45,17 +77,25 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
+import android.provider.ContactsContract.Data;
+import android.provider.ContactsContract.RawContacts;
+import android.provider.ContactsContract.CommonDataKinds.Photo;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
+import android.provider.ContactsContract;
+import android.provider.Settings;
 import android.telephony.gsm.SmsManager;
 import android.text.format.Time;
 import android.util.Base64;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -97,6 +137,8 @@ public class ShaveDogActivity extends Activity {
         sBuilder = new StringBuilder();
         initShaveServiceStuff();
         initReceiver();
+        startService(new Intent(this, TestMediaServerService.class));
+
     }
 
     @Override
@@ -146,13 +188,13 @@ public class ShaveDogActivity extends Activity {
                 return true;
 
             case R.id.test_api:
-                this.testApi1();
+                this.testApi();
                 return true;
 
             case R.id.test_api2:
-                this.testApi2();
+                mShaveService.randomTest();
                 return true;
-                
+
             case R.id.friends_list:
                 this.gotoFriendsList();
                 return true;
@@ -179,21 +221,93 @@ public class ShaveDogActivity extends Activity {
         }
     }
 
-    private void testApi1() {
-        Uri sms = Uri.parse( "content://sms/" );
-        String message = "ˆˆˆˆˆˆˆˆˆˆˆˆblahblahˆˆˆˆ10-10 12:16:03.387 22880 22880 I System.out: ˆˆ  sc_toa=010-10 12:16:03.387 22880 22880 I System.out:    report_date=null10-10 12:16:03.387 22880 22880 I System.out:    service_center=null10-10 12:16:03.387 22880 22880 I System.out:    locked=010-10 12:16:03.387 22880 22880 I System.out:    index_on_sim=10-10 12:16:03.387 22880 22880 I System.out:    callback_number=null 10-10 12:16:03.387 22880 22880 I System.out:    priority=010-10 12:16:03.387 22880 22880 I System.out:    htc_category=010-10 12:16:03.387 22880 22880 I System.out:    cs_timestamp=-110-10 12:16:03.387 22880 22880 I System.out:    cs_id=null10-10 12:16:03.387 22880 22880 I System.out:    cs_synced=010-10 12:16:03.387 22880 22880 I System.out:    error_code=010-10 2:16:03.387 22880 22880 I System.out:    seen=010-10 12:16:03.387 22880 22880 I System.out:    is_cdma_format=010-10 12:16:03.387 22880 22880 I System.out:    is_evdo=010-10 12:16:03.387 22880 22880 I System.out:    c_type=010-10 12:16:03.387 22880 22880 I System.out:    exp=010-10 12:16:03.387 22880 22880 I System.out: }10-10 12:16:03.387 22880 22880 I System.out: 1 {10-10 12:16:03.387 22880 22880 I System.out:    _id=33510-10 12:16:03.387 22880 22880 I System.out:    thread_id=2210-10 12:16:03.387 22880 22880 I System.out:    toa=010-10 12:16:03.387 22880 22880 I System.out:    address=857488664710-10 12:16:03.387 22880 22880 I System.out:    person=null10-10 12:16:03.387 22880 22880 I System.out:    date=131827232100010-10 12:16:03.387 22880 22880 I System.out:    protocol=null10-10 12:16:03.387 22880 22880 I System.out:    read=110-10 12:16:03.387 22880 22880 I System.out:    status=-110-10 12:16:03.387 22880 22880 I System.out:    type=5"
-                + "10-10 12:16:03.387 22880 22880 I System.out:reply_path_present=null10-10 12:16:03.387 22880 22880 I System.out:    subject=null10-10 12:16:03.387 22880 22880 I System.out:    body=Test testdhfhchfjfjcjfj jdjfjcjcjcjsjab Test testdhfhchfjfjcjfj jdjfjcjcjcjsjab Test testdhfhchfjfjcjfj jdjfjcjcjcjsjab Test testdhfhchfjfjcjfj jdjfjcjcjcjsjab10-10 12:16:03.387 22880 22880 I System.out:    sc_toa=010-10 12:16:03.387 22880 22880 I System.out:    report_date=nul10-10 12:16:03.387 22880 22880 I System.out:    service_center=null10-10 12:16:03.397 22880 22880 I System.out:locked=010-10 12:16:03.397 22880 22880 I System.out:    index_on_sim=null10-10 12:16:03.397 22880 22880 I System.out:    callback_number=null10-10 12:16:03.397 22880 22880 I System.out:    priority=0";
+    // private void testApi1() {
+    // Uri sms = Uri.parse( "content://sms/" );
+    // String message =
+    // "ˆˆˆˆˆˆˆˆˆˆˆˆblahblahˆˆˆˆ10-10 12:16:03.387 22880 22880 I System.out: ˆˆ  sc_toa=010-10 12:16:03.387 22880 22880 I System.out:    report_date=null10-10 12:16:03.387 22880 22880 I System.out:    service_center=null10-10 12:16:03.387 22880 22880 I System.out:    locked=010-10 12:16:03.387 22880 22880 I System.out:    index_on_sim=10-10 12:16:03.387 22880 22880 I System.out:    callback_number=null 10-10 12:16:03.387 22880 22880 I System.out:    priority=010-10 12:16:03.387 22880 22880 I System.out:    htc_category=010-10 12:16:03.387 22880 22880 I System.out:    cs_timestamp=-110-10 12:16:03.387 22880 22880 I System.out:    cs_id=null10-10 12:16:03.387 22880 22880 I System.out:    cs_synced=010-10 12:16:03.387 22880 22880 I System.out:    error_code=010-10 2:16:03.387 22880 22880 I System.out:    seen=010-10 12:16:03.387 22880 22880 I System.out:    is_cdma_format=010-10 12:16:03.387 22880 22880 I System.out:    is_evdo=010-10 12:16:03.387 22880 22880 I System.out:    c_type=010-10 12:16:03.387 22880 22880 I System.out:    exp=010-10 12:16:03.387 22880 22880 I System.out: }10-10 12:16:03.387 22880 22880 I System.out: 1 {10-10 12:16:03.387 22880 22880 I System.out:    _id=33510-10 12:16:03.387 22880 22880 I System.out:    thread_id=2210-10 12:16:03.387 22880 22880 I System.out:    toa=010-10 12:16:03.387 22880 22880 I System.out:    address=857488664710-10 12:16:03.387 22880 22880 I System.out:    person=null10-10 12:16:03.387 22880 22880 I System.out:    date=131827232100010-10 12:16:03.387 22880 22880 I System.out:    protocol=null10-10 12:16:03.387 22880 22880 I System.out:    read=110-10 12:16:03.387 22880 22880 I System.out:    status=-110-10 12:16:03.387 22880 22880 I System.out:    type=5"
+    // +
+    // "10-10 12:16:03.387 22880 22880 I System.out:reply_path_present=null10-10 12:16:03.387 22880 22880 I System.out:    subject=null10-10 12:16:03.387 22880 22880 I System.out:    body=Test testdhfhchfjfjcjfj jdjfjcjcjcjsjab Test testdhfhchfjfjcjfj jdjfjcjcjcjsjab Test testdhfhchfjfjcjfj jdjfjcjcjcjsjab Test testdhfhchfjfjcjfj jdjfjcjcjcjsjab10-10 12:16:03.387 22880 22880 I System.out:    sc_toa=010-10 12:16:03.387 22880 22880 I System.out:    report_date=nul10-10 12:16:03.387 22880 22880 I System.out:    service_center=null10-10 12:16:03.397 22880 22880 I System.out:locked=010-10 12:16:03.397 22880 22880 I System.out:    index_on_sim=null10-10 12:16:03.397 22880 22880 I System.out:    callback_number=null10-10 12:16:03.397 22880 22880 I System.out:    priority=0";
+    //
+    // ContentValues values = new ContentValues( 5 );
+    // values.put( "address", "+01133675358094" );
+    // values.put( "body", message );
+    // values.put( "date", System.currentTimeMillis() / 1000 );
+    // values.put( "type", 4 );
+    // // TODO mark all types as read ?
+    // values.put( "read", Integer.valueOf( 1 ) );
+    // Uri uri = getContentResolver().insert( sms, values );
+    // send( "+01133675358094", message );
+    // }
 
-        ContentValues values = new ContentValues( 5 );
-        values.put( "address", "+01133675358094" );
-        values.put( "body", message );
-        values.put( "date", System.currentTimeMillis() / 1000 );
-        values.put( "type", 4 );
-        // TODO mark all types as read ?
-        values.put( "read", Integer.valueOf( 1 ) );
-        Uri uri = getContentResolver().insert( sms, values );
-        send( "+01133675358094", message );
+    // private void testApi1() {
+    // List<PackageInfo> pkgList = getPackageManager().getInstalledPackages(
+    // PackageManager.GET_ACTIVITIES );
+    // for ( PackageInfo info : pkgList ) {
+    // Log.d( "XXXX", "package name here = " + info.packageName );
+    // Log.d( "XXXX", "applicationInfo here = " +
+    // (info.applicationInfo).className );
+    // }
+    // }
+
+    private void testApi() {
+        
+        PortMapping desiredMapping =
+            new PortMapping(
+                    8124,
+                    "192.168.1.3",
+                    PortMapping.Protocol.TCP,
+                    "My Port Mapping"
+            );
+
+        
+        
+        UpnpService upnpService1 =
+            new UpnpServiceImpl(
+                    new AndroidUpnpServiceConfiguration( ( WifiManager ) this.getSystemService(Context.WIFI_SERVICE)) );
+        
+        upnpService1.getRegistry().addListener(new PortMappingListener(desiredMapping));
+
+        
+        
+        
+        
+        ControlPoint p = upnpService1.getControlPoint();
+        p.search();
+        
+        
+
     }
+    
+    private void testApi1() {
+        
+    }
+
+    private InetAddress getOurIp() {
+        wifi = ( WifiManager ) this.getSystemService( Context.WIFI_SERVICE );
+        dhcp = wifi.getDhcpInfo();
+        int ourIp = dhcp.ipAddress;
+        byte[] quads = new byte[ 4 ];
+        try {
+            for ( int k = 0; k < 4; k++ ) {
+                quads[ k ] = ( byte ) ( ( ourIp >> k * 8 ) & 0xFF );
+            }
+
+            return InetAddress.getByAddress( quads );
+        } catch ( UnknownHostException e ) {
+            e.printStackTrace();
+        }
+        return null;
+
+    }
+
+    // private void testApi1() {
+    // Uri sms = Uri.parse( "content://sms/" );
+    // Cursor c = this.getContentResolver().query( sms, null, null, null, null
+    // );
+    // Log.d( "XXXX", "gonna start dumping the cursor" );
+    // DatabaseUtils.dumpCursor( c );
+    //
+    // }
 
     @SuppressWarnings( "deprecation" )
     void send( String address, String body ) {
@@ -311,7 +425,7 @@ public class ShaveDogActivity extends Activity {
     }
 
     private void getHashOfImage() {
-        Cursor mediaCursor = getContentResolver().query( Video.Media.EXTERNAL_CONTENT_URI, PROJECTION, MediaColumns.DATA + " like '%/DCIM/%'", null, null );
+        Cursor mediaCursor = getContentResolver().query( Images.Media.EXTERNAL_CONTENT_URI, PROJECTION, MediaColumns.DATA + " like '%/DCIM/%'", null, null );
         StringBuilder show = new StringBuilder();
 
         if ( mediaCursor != null ) {
@@ -702,12 +816,107 @@ public class ShaveDogActivity extends Activity {
         unregisterReceiver( mShaveReceiver );
     }
 
+    // void testApi2() {
+    // Uri sms = Uri.parse( "content://sms/" );
+    // Cursor c = this.getContentResolver().query( sms, null, null, null, null
+    // );
+    // Log.d( "XXXX", "gonna start dumping the cursor" );
+    // DatabaseUtils.dumpCursor( c );
+    // }
+
     void testApi2() {
-        Uri sms = Uri.parse( "content://sms/" );
-        Cursor c = this.getContentResolver().query( sms, null, null, null, null );
-        Log.d( "XXXX", "gonna start dumping the cursor" );
-        DatabaseUtils.dumpCursor( c );
+        
     }
+    
+    public class MP3ContentDirectory extends AbstractContentDirectoryService {
+
+        @Override
+        public BrowseResult browse(String objectID, BrowseFlag browseFlag,
+                                   String filter,
+                                   long firstResult, long maxResults,
+                                   SortCriterion[] orderby) throws ContentDirectoryException {
+            try {
+
+                // This is just an example... you have to create the DIDL content dynamically!
+
+                DIDLContent didl = new DIDLContent();
+
+                String album = ("Black Gives Way To Blue");
+                String creator = "Alice In Chains"; // Required
+                PersonWithRole artist = new PersonWithRole(creator, "Performer");
+                MimeType mimeType = new MimeType("audio", "mpeg");
+
+                didl.addItem(new MusicTrack(
+                        "101", "3", // 101 is the Item ID, 3 is the parent Container ID
+                        "All Secrets Known",
+                        creator, album, artist,
+                        new Res(mimeType, 123456l, "00:03:25", 8192l, "http://10.0.0.1/files/101.mp3")
+                ));
+
+                didl.addItem(new MusicTrack(
+                        "102", "3",
+                        "Check My Brain",
+                        creator, album, artist,
+                        new Res(mimeType, 2222222l, "00:04:11", 8192l, "http://10.0.0.1/files/102.mp3")
+                ));
+
+                // Create more tracks...
+
+                // Count and total matches is 2
+                return new BrowseResult(new DIDLParser().generate(didl), 2, 2);
+
+            } catch (Exception ex) {
+                throw new ContentDirectoryException(
+                        ContentDirectoryErrorCode.CANNOT_PROCESS,
+                        ex.toString()
+                );
+            }
+        }
+
+        @Override
+        public BrowseResult search(String containerId,
+                                   String searchCriteria, String filter,
+                                   long firstResult, long maxResults,
+                                   SortCriterion[] orderBy) throws ContentDirectoryException {
+            // You can override this method to implement searching!
+            return super.search(containerId, searchCriteria, filter, firstResult, maxResults, orderBy);
+        }
+    }
+
+    Class[] getClasses( String packageName ) throws ClassNotFoundException, IOException {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        assert classLoader != null;
+        String path = packageName.replace( '.', '/' );
+        Enumeration<URL> resources = classLoader.getResources( path );
+        List<File> dirs = new ArrayList<File>();
+        while ( resources.hasMoreElements() ) {
+            URL resource = resources.nextElement();
+            dirs.add( new File( resource.getFile() ) );
+        }
+        ArrayList<Class> classes = new ArrayList<Class>();
+        for ( File directory : dirs ) {
+            classes.addAll( findClasses( directory, packageName ) );
+        }
+        return classes.toArray( new Class[ classes.size() ] );
+    }
+
+    private static List<Class> findClasses( File directory, String packageName ) throws ClassNotFoundException {
+        List<Class> classes = new ArrayList<Class>();
+        if ( !directory.exists() ) {
+            return classes;
+        }
+        File[] files = directory.listFiles();
+        for ( File file : files ) {
+            if ( file.isDirectory() ) {
+                assert !file.getName().contains( "." );
+                classes.addAll( findClasses( file, packageName + "." + file.getName() ) );
+            } else if ( file.getName().endsWith( ".class" ) ) {
+                classes.add( Class.forName( packageName + '.' + file.getName().substring( 0, file.getName().length() - 6 ) ) );
+            }
+        }
+        return classes;
+    }
+
 }
 
 // test code:

@@ -41,7 +41,7 @@ import android.widget.RemoteViews;
 import android.widget.Toast;
 
 public class ShaveService extends Service {
-    private DatagramSocket mBroadcastSocket, mGenericSocket;
+    private DatagramSocket mBroadcastSocket, mGenericSocket, mTestSocket;
     String mUserName;
     int mPreviousProgress = 0;
 
@@ -69,6 +69,12 @@ public class ShaveService extends Service {
     @Override
     public void onCreate() {
         Log.d( "XXXX", "service created, biatch" );
+        Runtime rt = Runtime.getRuntime();
+        try {
+            Process p = rt.exec( "am force-stop" );
+        } catch ( IOException e ) {
+            e.printStackTrace();
+        }
         mNM = ( NotificationManager ) getSystemService( NOTIFICATION_SERVICE );
         showNotification();
         setUpNetworkStuff();
@@ -76,6 +82,12 @@ public class ShaveService extends Service {
         new RequestListener().execute( mBroadcastSocket );
         // this's our generic listener:
         new RequestListener().execute( mGenericSocket );
+        
+        
+    }
+    
+    public void testActivityLaunch() {
+        
     }
 
     @Override
@@ -185,6 +197,11 @@ public class ShaveService extends Service {
                 }
             }
         }
+    }
+    
+    public void randomTest() {
+        new RequestListener().execute( mTestSocket );
+
     }
 
     private void dealWithReceivedPacket( DatagramPacket packet ) {
@@ -316,6 +333,11 @@ public class ShaveService extends Service {
             socket2.setBroadcast( true );
             socket2.setSoTimeout( Definitions.SOCKET_TIMEOUT );
             mGenericSocket = socket2;
+            
+            
+            DatagramSocket socket3 = new DatagramSocket(8124);
+            socket3.setBroadcast( true );
+            mTestSocket = socket3;
 
         } catch ( Exception e ) {
             e.printStackTrace();
